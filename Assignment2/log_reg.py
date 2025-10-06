@@ -1,176 +1,66 @@
-""" 
-author:-aam35
-"""
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
-
-import numpy as np
 import tensorflow as tf
-tf.enable_eager_execution()
-import time
+import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
+from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
-import utils
-tf.executing_eagerly()
-# Define paramaters for the model
-learning_rate = None
-batch_size = None
-n_epochs = None
-n_train = None
-n_test = None
+# Seed initialization
+seed = sum([ord(c) for c in "Pavan"])
+tf.random.set_seed(seed)
+np.random.seed(seed)
 
-# Step 1: Read in data
-fmnist_folder = 'None'
-#Create dataset load function [Refer fashion mnist github page for util function]
-#Create train,validation,test split
-#train, val, test = utils.read_fmnist(fmnist_folder, flatten=True)
+# Load Fashion MNIST dataset
+mnist = fetch_openml("Fashion-MNIST", version=1)
+X = np.array(mnist.data) / 255.0  # Normalize
+y = np.array(mnist.target.astype(int))
 
-# Step 2: Create datasets and iterator
-# create training Dataset and batch it
-train_data = None
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
 
-# create testing Dataset and batch it
-test_data = None
-#############################
-########## TO DO ############
-#############################
+# Convert to tensors
+X_train = tf.convert_to_tensor(X_train, dtype=tf.float32)
+y_train = tf.convert_to_tensor(y_train, dtype=tf.int32)
+X_test = tf.convert_to_tensor(X_test, dtype=tf.float32)
+y_test = tf.convert_to_tensor(y_test, dtype=tf.int32)
 
+# Initialize parameters
+W = tf.Variable(tf.random.normal([X_train.shape[1], 10], dtype=tf.float32))
+b = tf.Variable(tf.zeros([10], dtype=tf.float32))
 
-# create one iterator and initialize it with different datasets
-iterator = tf.data.Iterator.from_structure(train_data.output_types, 
-                                           train_data.output_shapes)
-img, label = iterator.get_next()
+# Hyperparameters
+learning_rate = 0.01
+epochs = 100
+batch_size = 64
 
-train_init = iterator.make_initializer(train_data)	# initializer for train_data
-test_init = iterator.make_initializer(test_data)	# initializer for train_data
+# Loss function (Sparse Categorical Crossentropy)
+def compute_loss(y_true, y_pred):
+    return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred))
 
-# Step 3: create weights and bias
-# w is initialized to random variables with mean of 0, stddev of 0.01
-# b is initialized to 0
-# shape of w depends on the dimension of X and Y so that Y = tf.matmul(X, w)
-# shape of b depends on Y
-w, b = None, None
-#############################
-########## TO DO ############
-#############################
-
-
-# Step 4: build model
-# the model that returns the logits.
-# this logits will be later passed through softmax layer
-logits = None
-#############################
-########## TO DO ############
-#############################
-
-
-# Step 5: define loss function
-# use cross entropy of softmax of logits as the loss function
-loss = None
-#############################
-########## TO DO ############
-#############################
-
-
-# Step 6: define optimizer
-# using Adam Optimizer with pre-defined learning rate to minimize loss
-optimizer = None
-#############################
-########## TO DO ############
-#############################
-
-
-# Step 7: calculate accuracy with test set
-preds = tf.nn.softmax(logits)
-correct_preds = tf.equal(tf.argmax(preds, 1), tf.argmax(label, 1))
-accuracy = tf.reduce_sum(tf.cast(correct_preds, tf.float32))
-
-#Step 8: train the model for n_epochs times
-for i in range(n_epochs):
-	total_loss = 0
-	n_batches = 0
-	#Optimize the loss function
-	print("Train and Validation accuracy")
-	################################
-	###TO DO#####
-	############
-	
-#Step 9: Get the Final test accuracy
-
-#Step 10: Helper function to plot images in 3*3 grid
-#You can change the function based on your input pipeline
-
-def plot_images(images, y, yhat=None):
-    assert len(images) == len(y) == 9
-    
-    # Create figure with 3x3 sub-plots.
-    fig, axes = plt.subplots(3, 3)
-    fig.subplots_adjust(hspace=0.3, wspace=0.3)
-
-    for i, ax in enumerate(axes.flat):
-        # Plot image.
-        ax.imshow(images[i].reshape(img_shape), cmap='binary')
-
-        # Show true and predicted classes.
-        if yhat is None:
-            xlabel = "True: {0}".format(y[i])
-        else:
-            xlabel = "True: {0}, Pred: {1}".format(y[i], yhat[i])
-
-        ax.set_xlabel(xlabel)
+# Training loop
+train_losses = []
+for epoch in range(epochs):
+    epoch_loss = 0
+    for i in range(0, len(X_train), batch_size):
+        X_batch = X_train[i:i+batch_size]
+        y_batch = y_train[i:i+batch_size]
         
-        # Remove ticks from the plot.
-        ax.set_xticks([])
-        ax.set_yticks([])
-    plt.show()
-
-#Get image from test set 
-images = test_data[0:9]
-
-# Get the true classes for those images.
-y = test_class[0:9]
-
-# Plot the images and labels using our helper-function above.
-plot_images(images=images, y=y)
-
-
-#Second plot weights 
-
-def plot_weights(w=None):
-    # Get the values for the weights from the TensorFlow variable.
-    #TO DO ####
-    
-    # Get the lowest and highest values for the weights.
-    # This is used to correct the colour intensity across
-    # the images so they can be compared with each other.
-    w_min = None
-    #TO DO## obtains these value from W
-    w_max = None
-
-    # Create figure with 3x4 sub-plots,
-    # where the last 2 sub-plots are unused.
-    fig, axes = plt.subplots(3, 4)
-    fig.subplots_adjust(hspace=0.3, wspace=0.3)
-
-    for i, ax in enumerate(axes.flat):
-        # Only use the weights for the first 10 sub-plots.
-        if i<10:
-            # Get the weights for the i'th digit and reshape it.
-            # Note that w.shape == (img_size_flat, 10)
-            image = w[:, i].reshape(img_shape)
-
-            # Set the label for the sub-plot.
-            ax.set_xlabel("Weights: {0}".format(i))
-
-            # Plot the image.
-            ax.imshow(image, vmin=w_min, vmax=w_max, cmap='seismic')
-
-        # Remove ticks from each sub-plot.
-        ax.set_xticks([])
-        ax.set_yticks([])
+        with tf.GradientTape() as tape:
+            logits = tf.matmul(X_batch, W) + b
+            loss = compute_loss(y_batch, logits)
         
-    # Ensure the plot is shown correctly with multiple plots
-    # in a single Notebook cell.
-    plt.show()
+        gradients = tape.gradient(loss, [W, b])
+        W.assign_sub(learning_rate * gradients[0])
+        b.assign_sub(learning_rate * gradients[1])
+        
+        epoch_loss += loss.numpy()
+    
+    train_losses.append(epoch_loss / (len(X_train) // batch_size))
+    print(f"Epoch {epoch}: Loss = {train_losses[-1]}")
 
+# Plotting
+plt.plot(train_losses)
+plt.title("Training Loss Over Epochs")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.show()
